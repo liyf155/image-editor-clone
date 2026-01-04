@@ -71,3 +71,50 @@ The application is a **marketing landing page** with:
 - Floating banana decorations with custom CSS animations
 
 No actual AI image processing is implemented - this is a frontend demo/landing page.
+
+
+提示词1：
+create a 1/7 scale commercialized figure of thecharacter in the illustration, in a realistic styie and environment.Place the figure on a computer desk, using a circular transparent acrylic base without any text.0n the computer screen, display the ZBrush modeling process of the figure.Next to the computer screen, place a BANDAl-style toy packaging box printedwith the original artwork.
+
+
+提示词2：
+帮我实现核心功能：
+1. 用户点击Click to upload image后可以上传图片
+2. 用户上传图片，并且在Transfer Image下面输入提示词，点击Generate Now后，把图片和提示词都发给Gemini 2.5
+3. 这是API的说明文档：https://openrouter.ai/google/gemini-2.5-flash-image/api
+4. 这是API key：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，新建一个.env.local文件，存放API key
+5. 这是API示例代码：
+import { OpenRouter } from "@openrouter/sdk";
+
+const openrouter = new OpenRouter({
+  apiKey: "<OPENROUTER_API_KEY>"
+});
+
+const stream = await openrouter.chat.send({
+  model: "google/gemini-2.5-flash-image",
+  messages: [
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "text",
+          "text": "What is in this image?"
+        },
+        {
+          "type": "image_url",
+          "image_url": {
+            "url": "https://upload.wikimedia.org/wikipedia/commons/thumb/d/dd/Gfp-wisconsin-madison-the-nature-boardwalk.jpg/2560px-Gfp-wisconsin-madison-the-nature-boardwalk.jpg"
+          }
+        }
+      ]
+    }
+  ],
+  stream: true
+});
+
+for await (const chunk of stream) {
+  const content = chunk.choices[0]?.delta?.content;
+  if (content) {
+    process.stdout.write(content);
+  }
+}

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState } from "react"
-import { Upload, Sparkles, Zap, Users, ImageIcon, Layers } from "lucide-react"
+import { Upload, Sparkles, Zap, Users, ImageIcon, Layers, Bug, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
@@ -11,6 +11,23 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 export default function HomePage() {
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [prompt, setPrompt] = useState("")
+  const [generatedContent, setGeneratedContent] = useState("")
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [selectedModel, setSelectedModel] = useState("google/gemini-2.5-flash-image")
+  const [rawApiResponse, setRawApiResponse] = useState<any>(null)
+  const [showDebug, setShowDebug] = useState(false)
+
+  const handleDownloadImage = () => {
+    if (!generatedImageUrl) return
+
+    const link = document.createElement('a')
+    link.href = generatedImageUrl
+    link.download = `nano-banana-generated-${Date.now()}.png`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -20,6 +37,57 @@ export default function HomePage() {
         setUploadedImage(e.target?.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleGenerate = async () => {
+    if (!uploadedImage || !prompt) {
+      return
+    }
+
+    setIsGenerating(true)
+    setGeneratedContent("")
+    setGeneratedImageUrl(null)
+    setRawApiResponse(null)
+
+    // Use user's prompt directly - the model will generate an image based on the input
+    const enhancedPrompt = prompt
+
+    try {
+      const response = await fetch("/api/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          image: uploadedImage,
+          prompt: enhancedPrompt,
+          model: selectedModel
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to generate")
+      }
+
+      const data = await response.json()
+
+      // Save raw response for debugging
+      setRawApiResponse(data.rawResponse)
+
+      const content = data.content || ""
+      const imageUrl = data.imageUrl || null
+
+      setGeneratedContent(content)
+
+      // Use the image URL directly from backend
+      if (imageUrl && typeof imageUrl === 'string') {
+        setGeneratedImageUrl(imageUrl)
+      }
+    } catch (error) {
+      setGeneratedContent("Error: Failed to generate response. Please try again.")
+    } finally {
+      setIsGenerating(false)
     }
   }
 
@@ -136,10 +204,14 @@ export default function HomePage() {
 
               <div className="mt-6">
                 <label className="text-sm font-medium mb-2 block">AI Model Selection</label>
-                <select className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground">
-                  <option>Nano Banana</option>
-                  <option>Nano Banana Pro</option>
-                  <option>SeeDream 4</option>
+                <select
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground"
+                >
+                  <option value="google/gemini-2.5-flash-image-preview">Gemini 2.5 Flash Image (Preview)</option>
+                  <option value="google/gemini-3-pro-image-preview">Gemini 3 Pro Image (Preview)</option>
+                  <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
                 </select>
               </div>
             </div>
@@ -158,20 +230,101 @@ export default function HomePage() {
                   />
                 </div>
 
-                <Button className="w-full bg-primary text-primary-foreground hover:bg-primary/90" size="lg">
+                <Button
+                  className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
+                  size="lg"
+                  onClick={handleGenerate}
+                  disabled={!uploadedImage || !prompt || isGenerating}
+                >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  Generate Now
+                  {isGenerating ? "Generating..." : "Generate Now"}
                 </Button>
 
-                <div className="bg-accent/30 border border-border rounded-lg p-6 text-center">
-                  <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
-                  <p className="text-sm text-muted-foreground">Your AI creations appear here instantly</p>
-                  <p className="text-xs text-muted-foreground mt-2">Ready for instant generation</p>
+                {/* Debug Panel */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDebug(!showDebug)}
+                  className="w-full"
+                >
+                  <Bug className="w-4 h-4 mr-2" />
+                  {showDebug ? "Hide Debug Info" : "Show Debug Info"}
+                </Button>
+
+                {showDebug && rawApiResponse && (
+                  <div className="bg-black/50 border border-border rounded-lg p-4">
+                    <div className="text-xs text-green-400 font-mono mb-2">Raw API Response:</div>
+                    <pre className="text-xs text-green-300 font-mono overflow-x-auto max-h-60 overflow-y-auto">
+                      {JSON.stringify(rawApiResponse, null, 2)}
+                    </pre>
+                  </div>
+                )}
+
+                <div className="bg-accent/30 border border-border rounded-lg p-6">
+                  {generatedImageUrl ? (
+                    <div className="text-center space-y-2">
+                      <div className="flex items-center justify-center gap-2 text-sm text-primary">
+                        <Sparkles className="w-4 h-4" />
+                        <span>Image generated successfully! See comparison below.</span>
+                      </div>
+                      {generatedContent && (
+                        <div className="text-sm text-foreground whitespace-pre-wrap max-h-40 overflow-y-auto bg-background p-2 rounded">
+                          {generatedContent}
+                        </div>
+                      )}
+                    </div>
+                  ) : generatedContent ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-primary font-medium">
+                        <Sparkles className="w-4 h-4" />
+                        <span>AI Response</span>
+                      </div>
+                      <div className="text-sm text-foreground whitespace-pre-wrap max-h-40 overflow-y-auto bg-background p-2 rounded">
+                        {generatedContent}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center">
+                      <ImageIcon className="w-12 h-12 text-muted-foreground mx-auto mb-2" />
+                      <p className="text-sm text-muted-foreground">Generated images will appear below in the comparison section</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
           </div>
         </Card>
+
+        {/* Image Comparison Section */}
+        {generatedImageUrl && uploadedImage && (
+          <Card className="p-8 max-w-5xl mx-auto mt-8 bg-card border-border">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-center">Image Comparison</h3>
+              <Button onClick={handleDownloadImage} variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+            </div>
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-muted-foreground">Original Image</div>
+                <img
+                  src={uploadedImage}
+                  alt="Original"
+                  className="w-full rounded-lg border border-border"
+                />
+              </div>
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-primary">Generated Image</div>
+                <img
+                  src={generatedImageUrl}
+                  alt="Generated by AI"
+                  className="w-full rounded-lg border border-border"
+                />
+              </div>
+            </div>
+          </Card>
+        )}
       </section>
 
       {/* Features Section */}
@@ -379,7 +532,7 @@ export default function HomePage() {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
                 Simply upload an image and describe your desired edits in natural language. The AI understands complex
-                instructions like "place the creature in a snowy mountain" or "imagine the whole face and create it". It
+                instructions like &quot;place the creature in a snowy mountain&quot; or &quot;imagine the whole face and create it&quot;. It
                 processes your text prompt and generates perfectly edited images.
               </AccordionContent>
             </AccordionItem>
@@ -412,8 +565,8 @@ export default function HomePage() {
               </AccordionTrigger>
               <AccordionContent className="text-muted-foreground">
                 The editor handles complex edits including face completion, background changes, object placement, style
-                transfers, and character modifications. It excels at understanding contextual instructions like "place
-                in a blizzard" or "create the whole face" while maintaining photorealistic quality.
+                transfers, and character modifications. It excels at understanding contextual instructions like &quot;place
+                in a blizzard&quot; or &quot;create the whole face&quot; while maintaining photorealistic quality.
               </AccordionContent>
             </AccordionItem>
           </Accordion>
