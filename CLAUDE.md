@@ -118,3 +118,9 @@ for await (const chunk of stream) {
     process.stdout.write(content);
   }
 }
+
+
+
+
+1.帮我实现Pricing页面，参考https://imgeditor.co/pricing
+2.接入Creem支付，这是两个creem文档:https://docs.creem.io/introduction,https://docs.creem.io/api-reference/introduction
