@@ -16,6 +16,7 @@ export default function HomePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
   const [hasSubscription, setHasSubscription] = useState(false)
+  const [credits, setCredits] = useState(0)
   const [uploadedImage, setUploadedImage] = useState<string | null>(null)
   const [prompt, setPrompt] = useState("")
   const [generatedContent, setGeneratedContent] = useState("")
@@ -35,6 +36,8 @@ export default function HomePage() {
       if (session?.user) {
         // Check subscription status
         checkSubscription(session.user.id)
+        // Check credits
+        fetchCredits(session.user.id)
       }
     })
 
@@ -42,8 +45,10 @@ export default function HomePage() {
       setUser(session?.user ?? null)
       if (session?.user) {
         checkSubscription(session.user.id)
+        fetchCredits(session.user.id)
       } else {
         setHasSubscription(false)
+        setCredits(0)
       }
     })
 
@@ -58,6 +63,17 @@ export default function HomePage() {
     } catch (error) {
       console.error('Error checking subscription:', error)
       setHasSubscription(false)
+    }
+  }
+
+  const fetchCredits = async (userId: string) => {
+    try {
+      const response = await fetch('/api/credits')
+      const data = await response.json()
+      setCredits(data.balance || 0)
+    } catch (error) {
+      console.error('Error fetching credits:', error)
+      setCredits(0)
     }
   }
 
@@ -94,8 +110,9 @@ export default function HomePage() {
       return
     }
 
-    // Check if user has active subscription
-    if (!hasSubscription) {
+    // Check if user has enough credits (2 credits per image)
+    if (credits < 2) {
+      alert('You need at least 2 credits to generate an image. Please subscribe to get more credits.')
       setShowAccessModal(true)
       return
     }
@@ -142,11 +159,21 @@ export default function HomePage() {
       if (imageUrl && typeof imageUrl === 'string') {
         setGeneratedImageUrl(imageUrl)
       }
+
+      // Update credits balance
+      if (data.remainingCredits !== undefined) {
+        setCredits(data.remainingCredits)
+      }
     } catch (error) {
       console.error("Error generating:", error)
       const errorMessage = error instanceof Error ? error.message : "Unknown error"
       setGeneratedContent(`Error: ${errorMessage}`)
       setGeneratedImageUrl(null)
+
+      // Refresh credits on error in case they were refunded
+      if (user) {
+        fetchCredits(user.id)
+      }
     } finally {
       setIsGenerating(false)
     }
@@ -186,6 +213,12 @@ export default function HomePage() {
               <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 FAQ
               </a>
+              {user && (
+                <div className="flex items-center gap-2 bg-primary/10 text-primary px-3 py-1 rounded-full text-sm font-medium">
+                  <span className="text-xl">🍌</span>
+                  <span>{credits} Credits</span>
+                </div>
+              )}
               <AuthButton onSignInClick={() => setShowAuthModal(true)} />
             </div>
           </nav>
@@ -252,9 +285,15 @@ export default function HomePage() {
           <h2 className="text-4xl font-bold mb-4">
             Try The <span className="text-primary">AI Editor</span>
           </h2>
-          <p className="text-muted-foreground text-lg">
+          <p className="text-muted-foreground text-lg mb-4">
             Experience the power of Nano Banana's natural language image editing
           </p>
+          {user && (
+            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+              <span className="text-xl">🍌</span>
+              <span>{credits} Credits Available • 2 Credits per Image</span>
+            </div>
+          )}
         </div>
 
         <Card className="p-8 max-w-5xl mx-auto bg-card border-border shadow-lg">
@@ -661,12 +700,27 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-border bg-background py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2 text-lg font-bold">
               <span className="text-2xl">🍌</span>
               <span>Nano Banana</span>
             </div>
-            <p className="text-sm text-muted-foreground">© 2026 Nano Banana. Transform images with AI.</p>
+
+            <div className="flex items-center gap-6 text-sm">
+              <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
+                Refund Policy
+              </a>
+              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </a>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              © 2026 Nano Banana. Transform images with AI.
+            </p>
           </div>
         </div>
       </footer>

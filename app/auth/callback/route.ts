@@ -9,8 +9,31 @@ export async function GET(request: NextRequest) {
 
   if (code) {
     const supabase = await createClient()
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
-    if (!error) {
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    if (!error && data.user) {
+      // Give new users 4 free credits on first sign-in
+      const { data: existingCredits } = await supabase
+        .from('user_credits')
+        .select('balance')
+        .eq('user_id', data.user.id)
+        .single()
+
+      if (!existingCredits) {
+        // User doesn't have credits yet, give them 4 free credits
+        const { error: creditError } = await supabase.rpc('add_credits', {
+          user_uuid: data.user.id,
+          amount: 4,
+          trans_type: 'registration_bonus',
+          descr: 'Free credits for signing up'
+        })
+
+        if (creditError) {
+          console.error('Error adding registration credits:', creditError)
+        } else {
+          console.log('✅ Added 4 free credits to new user:', data.user.id)
+        }
+      }
+
       const forwardedHost = request.headers.get('x-forwarded-host')
       const isLocalEnv = process.env.NODE_ENV === 'development'
       if (isLocalEnv) {

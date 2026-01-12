@@ -316,11 +316,27 @@ export default function PricingPage() {
       {/* Footer */}
       <footer className="border-t border-border bg-background py-12">
         <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2 text-lg font-bold">
               <span className="text-2xl">🍌</span>
               <span>Nano Banana</span>
             </div>
+
+            <div className="flex items-center gap-6 text-sm">
+              <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
+                Privacy Policy
+              </a>
+              <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
+                Refund Policy
+              </a>
+              <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
+                Home
+              </a>
+              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+                Contact
+              </a>
+            </div>
+
             <p className="text-sm text-muted-foreground">
               © 2026 Nano Banana. Transform images with AI.
             </p>

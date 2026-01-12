@@ -109,6 +109,31 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('✅ Subscription saved successfully for user:', userId, 'Plan:', planName)
+
+      // Add credits based on plan
+      const planCredits: Record<string, number> = {
+        'Basic': 1800,
+        'Pro': 9600,
+        'Max': 55200,
+      }
+
+      const creditsToAdd = planCredits[planName] || 1800
+
+      // Call add_credits function
+      const { data: creditResult, error: creditError } = await supabase.rpc('add_credits', {
+        user_uuid: userId,
+        amount: creditsToAdd,
+        trans_type: 'subscription_grant',
+        descr: `Credits from ${planName} subscription`,
+        rel_id: null
+      })
+
+      if (creditError) {
+        console.error('Error adding credits:', creditError)
+        // Don't fail the webhook, credit error is not critical
+      } else {
+        console.log(`✅ Added ${creditsToAdd} credits to user:`, userId)
+      }
     }
 
     return NextResponse.json({ received: true, success: true })
