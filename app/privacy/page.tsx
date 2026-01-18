@@ -250,7 +250,7 @@ export default function PrivacyPage() {
 
             <Card className="p-6 mt-4">
               <div className="space-y-2">
-                <p><strong>Email:</strong> <a href="mailto:support@nanobanana.com" className="text-primary hover:underline">support@nanobanana.com</a></p>
+                <p><strong>Email:</strong> <a href="mailto:liyf155@gmail.com" className="text-primary hover:underline">liyf155@gmail.com</a></p>
                 <p><strong>Website:</strong> <a href="https://imgedtor.online" className="text-primary hover:underline">https://imgedtor.online</a></p>
                 <p className="mt-4 text-sm text-muted-foreground">
                   We will respond to your inquiries within 30 days of receipt.
@@ -282,13 +282,16 @@ export default function PrivacyPage() {
               <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </a>
+              <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </a>
               <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
                 Refund Policy
               </a>
               <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </a>
-              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:liyf155@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>

@@ -323,6 +323,9 @@ export default function PricingPage() {
               <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </a>
+              <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </a>
               <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
                 Refund Policy
               </a>

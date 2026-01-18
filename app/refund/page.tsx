@@ -100,7 +100,7 @@ export default function RefundPage() {
             <h2 className="text-2xl font-bold mb-4">4. How to Request a Refund</h2>
             <p>To request a refund, please follow these steps:</p>
             <ol>
-              <li><strong>Contact Us:</strong> Send an email to <a href="mailto:support@nanobanana.com" className="text-primary hover:underline">support@nanobanana.com</a></li>
+              <li><strong>Contact Us:</strong> Send an email to <a href="mailto:liyf155@gmail.com" className="text-primary hover:underline">liyf155@gmail.com</a></li>
               <li><strong>Provide Information:</strong> Include your account email, transaction ID, and reason for the refund request</li>
               <li><strong>Wait for Response:</strong> We will review your request and respond within 3-5 business days</li>
               <li><strong>Processing:</strong> If approved, refunds will be processed within 5-10 business days</li>
@@ -160,7 +160,7 @@ export default function RefundPage() {
               <li>Click "Cancel Subscription"</li>
               <li>Follow the confirmation steps</li>
             </ul>
-            <p className="mt-4">Alternatively, contact support at <a href="mailto:support@nanobanana.com" className="text-primary hover:underline">support@nanobanana.com</a> for assistance.</p>
+            <p className="mt-4">Alternatively, contact support at <a href="mailto:liyf155@gmail.com" className="text-primary hover:underline">liyf155@gmail.com</a> for assistance.</p>
 
             <h3 className="text-xl font-semibold mb-3 mt-6">6.2 Cancellation Effects</h3>
             <ul>
@@ -214,7 +214,7 @@ export default function RefundPage() {
 
             <Card className="p-6 mt-4">
               <div className="space-y-2">
-                <p><strong>Email:</strong> <a href="mailto:support@nanobanana.com" className="text-primary hover:underline">support@nanobanana.com</a></p>
+                <p><strong>Email:</strong> <a href="mailto:liyf155@gmail.com" className="text-primary hover:underline">liyf155@gmail.com</a></p>
                 <p><strong>Website:</strong> <a href="https://imgedtor.online" className="text-primary hover:underline">https://imgedtor.online</a></p>
                 <p><strong>Response Time:</strong> We typically respond within 1-2 business days</p>
                 <p className="mt-4 text-sm text-muted-foreground">
@@ -258,13 +258,16 @@ export default function RefundPage() {
               <a href="/privacy" className="text-muted-foreground hover:text-foreground transition-colors">
                 Privacy Policy
               </a>
+              <a href="/terms" className="text-muted-foreground hover:text-foreground transition-colors">
+                Terms of Service
+              </a>
               <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
                 Refund Policy
               </a>
               <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </a>
-              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:liyf155@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>
