@@ -74,10 +74,10 @@ export default function PricingPage() {
     {
       name: "Basic",
       description: "Perfect for individuals and light users",
-      price: { monthly: 12, yearly: 144 },
-      credits: "1800 credits/year",
+      price: { monthly: 15, yearly: 180 },
+      credits: "2400 credits/year",
       features: [
-        "75 high-quality images/month",
+        "100 high-quality images/month",
         "All style templates included",
         "Standard generation speed",
         "Basic customer support",
@@ -89,10 +89,10 @@ export default function PricingPage() {
     {
       name: "Pro",
       description: "For professional creators and teams",
-      price: { monthly: 19.5, yearly: 234 },
-      credits: "9600 credits/year",
+      price: { monthly: 29, yearly: 348 },
+      credits: "12000 credits/year",
       features: [
-        "400 high-quality images/month",
+        "500 high-quality images/month",
         "Support advanced AI models",
         "All style templates included",
         "Priority generation queue",
@@ -107,10 +107,10 @@ export default function PricingPage() {
     {
       name: "Max",
       description: "Designed for large enterprises and professional studios",
-      price: { monthly: 80, yearly: 960 },
-      credits: "55200 credits/year",
+      price: { monthly: 79, yearly: 948 },
+      credits: "60000 credits/year",
       features: [
-        "2300 high-quality images/month",
+        "2500 high-quality images/month",
         "Support advanced AI models",
         "All style templates included",
         "Fastest generation speed",
