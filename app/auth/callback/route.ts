@@ -1,6 +1,34 @@
 import { createClient } from '@/lib/supabase/server'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import { NextRequest } from 'next/server'
+import { cookies } from 'next/headers'
+
+// Helper to create a service role client for admin operations
+async function createServiceRoleClient() {
+  const cookieStore = await cookies()
+
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          try {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              cookieStore.set(name, value, options)
+            )
+          } catch {
+            // Ignore
+          }
+        },
+      },
+    }
+  )
+}
 
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
@@ -12,17 +40,22 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     if (!error && data.user) {
       // Give new users 4 free credits on first sign-in
-      const { data: existingCredits } = await supabase
+      // Use service role client for admin operations
+      const serviceSupabase = await createServiceRoleClient()
+
+      const { data: existingCredits } = await serviceSupabase
         .from('user_credits')
         .select('balance')
         .eq('user_id', data.user.id)
         .single()
 
-      if (!existingCredits) {
-        // User doesn't have credits yet, give them 4 free credits
-        const { error: creditError } = await supabase.rpc('add_credits', {
+      // Grant 4 free credits if user has no credits or balance is 0
+      if (!existingCredits || existingCredits.balance === 0) {
+        const creditsToGrant = !existingCredits ? 4 : (4 - existingCredits.balance)
+
+        const { error: creditError } = await serviceSupabase.rpc('add_credits', {
           user_uuid: data.user.id,
-          amount: 4,
+          amount: creditsToGrant,
           trans_type: 'registration_bonus',
           descr: 'Free credits for signing up'
         })
@@ -30,7 +63,7 @@ export async function GET(request: NextRequest) {
         if (creditError) {
           console.error('Error adding registration credits:', creditError)
         } else {
-          console.log('✅ Added 4 free credits to new user:', data.user.id)
+          console.log(`✅ Added ${creditsToGrant} free credits to user:`, data.user.id)
         }
       }
 

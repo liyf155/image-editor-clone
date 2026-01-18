@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Upload, Sparkles, Zap, Users, ImageIcon, Layers, Download, ArrowRight, Bug, PenTool, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -11,6 +11,16 @@ import { AuthButton } from "@/components/auth-button"
 import { AuthModal } from "@/components/auth-modal"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+
+// Credit costs per model
+const MODEL_CREDITS: Record<string, number> = {
+  "google/gemini-2.5-flash-image": 2,  // Nano Banana
+  "google/gemini-3-pro-image-preview": 6,  // Nano Banana Pro
+}
+
+function getCreditsForModel(model: string): number {
+  return MODEL_CREDITS[model] || 2  // Default to 2 credits
+}
 
 export default function HomePage() {
   const router = useRouter()
@@ -28,6 +38,9 @@ export default function HomePage() {
   const [showAccessModal, setShowAccessModal] = useState(false)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const supabase = createClient()
+
+  // Calculate required credits based on selected model
+  const requiredCredits = useMemo(() => getCreditsForModel(selectedModel), [selectedModel])
 
   useEffect(() => {
     // Check user session
@@ -110,9 +123,9 @@ export default function HomePage() {
       return
     }
 
-    // Check if user has enough credits (2 credits per image)
-    if (credits < 2) {
-      alert('You need at least 2 credits to generate an image. Please subscribe to get more credits.')
+    // Check if user has enough credits
+    if (credits < requiredCredits) {
+      alert(`You need at least ${requiredCredits} credits to generate an image. Please subscribe to get more credits.`)
       setShowAccessModal(true)
       return
     }
@@ -206,9 +219,6 @@ export default function HomePage() {
               </a>
               <a href="#showcase" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Showcase
-              </a>
-              <a href="#reviews" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Reviews
               </a>
               <a href="#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 FAQ
@@ -329,9 +339,8 @@ export default function HomePage() {
                   onChange={(e) => setSelectedModel(e.target.value)}
                   className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground"
                 >
-                  <option value="google/gemini-2.5-flash-image-preview">Gemini 2.5 Flash Image (Preview)</option>
-                  <option value="google/gemini-3-pro-image-preview">Gemini 3 Pro Image (Preview)</option>
-                  <option value="google/gemini-2.5-flash-image">Gemini 2.5 Flash Image</option>
+                  <option value="google/gemini-2.5-flash-image">Nano Banana</option>
+                  <option value="google/gemini-3-pro-image-preview">Nano Banana Pro</option>
                 </select>
               </div>
             </div>
@@ -357,7 +366,7 @@ export default function HomePage() {
                   disabled={!uploadedImage || !prompt || isGenerating}
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  {isGenerating ? "Generating..." : "Generate Now"}
+                  {isGenerating ? "Generating..." : `Generate Now (${requiredCredits} Credit${requiredCredits > 1 ? 's' : ''})`}
                 </Button>
 
                 {/* Debug Panel */}
@@ -587,56 +596,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Reviews Section */}
-      <section id="reviews" className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12">
-          <h2 className="text-4xl font-bold mb-4">
-            What <span className="text-primary">Creators</span> Are Saying
-          </h2>
-          <p className="text-muted-foreground text-lg">Real feedback from our community</p>
-        </div>
-
-        <div className="grid md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-          <Card className="p-6 bg-card border-border card-hover">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl">👨‍🎨</div>
-              <div>
-                <div className="font-semibold">AIArtistPro</div>
-                <div className="text-sm text-muted-foreground">Digital Creator</div>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              "This editor completely changed my workflow. The character consistency is incredible - miles ahead of competitors!"
-            </p>
-          </Card>
-
-          <Card className="p-6 bg-card border-border card-hover">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl">👩‍💼</div>
-              <div>
-                <div className="font-semibold">ContentCreator</div>
-                <div className="text-sm text-muted-foreground">UGC Specialist</div>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              "Creating consistent AI influencers has never been easier. It maintains perfect face details across edits!"
-            </p>
-          </Card>
-
-          <Card className="p-6 bg-card border-border card-hover">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-xl">📸</div>
-              <div>
-                <div className="font-semibold">PhotoEditor</div>
-                <div className="text-sm text-muted-foreground">Professional Editor</div>
-              </div>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              "One-shot editing is basically solved with this tool. The scene blending is so natural and realistic!"
-            </p>
-          </Card>
-        </div>
-      </section>
 
       {/* FAQ Section */}
       <section id="faq" className="container mx-auto px-4 py-20 bg-accent/20">
@@ -713,7 +672,7 @@ export default function HomePage() {
               <a href="/refund" className="text-muted-foreground hover:text-foreground transition-colors">
                 Refund Policy
               </a>
-              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:liyf155@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>

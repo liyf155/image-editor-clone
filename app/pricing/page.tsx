@@ -169,7 +169,7 @@ export default function PricingPage() {
               <a href="/" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </a>
-              <a href="#editor" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              <a href="/#editor" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Editor
               </a>
               <a href="/pricing" className="text-sm font-medium text-primary">
@@ -177,9 +177,6 @@ export default function PricingPage() {
               </a>
               <a href="/#showcase" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 Showcase
-              </a>
-              <a href="/#reviews" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Reviews
               </a>
               <a href="/#faq" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
                 FAQ
@@ -332,7 +329,7 @@ export default function PricingPage() {
               <a href="/" className="text-muted-foreground hover:text-foreground transition-colors">
                 Home
               </a>
-              <a href="mailto:support@nanobanana.com" className="text-muted-foreground hover:text-foreground transition-colors">
+              <a href="mailto:liyf155@gmail.com" className="text-muted-foreground hover:text-foreground transition-colors">
                 Contact
               </a>
             </div>

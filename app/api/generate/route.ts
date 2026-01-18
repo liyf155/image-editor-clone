@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createServiceRoleClient } from '@/lib/supabase/server'
 
-const CREDITS_PER_IMAGE = 2
+// Credit costs per model
+const MODEL_CREDITS: Record<string, number> = {
+  "google/gemini-2.5-flash-image": 2,  // Nano Banana
+  "google/gemini-3-pro-image-preview": 6,  // Nano Banana Pro
+}
+
+function getCreditsForModel(model: string): number {
+  return MODEL_CREDITS[model] || 2  // Default to 2 credits
+}
 
 export async function POST(req: NextRequest) {
   try {
     const { image, prompt, model, userId } = await req.json()
+
+    console.log('[DEBUG] Request received:', { hasImage: !!image, prompt, model, userId })
 
     if (!image || !prompt) {
       return NextResponse.json(
@@ -21,57 +31,67 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const supabase = await createClient()
+    // Get credit cost for the selected model
+    const creditsRequired = getCreditsForModel(model || "google/gemini-2.5-flash-image")
+    console.log('[DEBUG] Credits required:', creditsRequired, 'for model:', model)
+
+    // Use service role client for credit operations
+    const supabaseAdmin = createServiceRoleClient()
+    console.log('[DEBUG] Service role client created')
 
     // Check if user has enough credits
-    const { data: currentBalance, error: balanceError } = await supabase.rpc('get_credit_balance', {
+    const { data: currentBalance, error: balanceError } = await supabaseAdmin.rpc('get_credit_balance', {
       user_uuid: userId
     })
 
+    console.log('[DEBUG] Balance check:', { currentBalance, balanceError })
+
     if (balanceError) {
-      console.error('Error checking credit balance:', balanceError)
+      console.error('[ERROR] Error checking credit balance:', balanceError)
       return NextResponse.json(
-        { error: "Failed to check credit balance" },
+        { error: "Failed to check credit balance", details: balanceError.message },
         { status: 500 }
       )
     }
 
-    if ((currentBalance || 0) < CREDITS_PER_IMAGE) {
+    if ((currentBalance || 0) < creditsRequired) {
       return NextResponse.json(
         {
           error: "Insufficient credits",
-          details: `You need ${CREDITS_PER_IMAGE} credits to generate an image. Current balance: ${currentBalance || 0}`
+          details: `You need ${creditsRequired} credits to generate an image. Current balance: ${currentBalance || 0}`
         },
         { status: 402 }
       )
     }
 
     // Deduct credits
-    const { error: deductError } = await supabase.rpc('add_credits', {
+    console.log('[DEBUG] Deducting credits...')
+    const { error: deductError } = await supabaseAdmin.rpc('add_credits', {
       user_uuid: userId,
-      amount: -CREDITS_PER_IMAGE,
+      amount: -creditsRequired,
       trans_type: 'image_generation',
       descr: `Generated image with prompt: ${prompt.substring(0, 50)}...`
     })
 
     if (deductError) {
-      console.error('Error deducting credits:', deductError)
+      console.error('[ERROR] Error deducting credits:', deductError)
       return NextResponse.json(
-        { error: "Failed to deduct credits" },
+        { error: "Failed to deduct credits", details: deductError.message },
         { status: 500 }
       )
     }
 
-    console.log(`✅ Deducted ${CREDITS_PER_IMAGE} credits from user:`, userId)
+    console.log(`✅ Deducted ${creditsRequired} credits from user:`, userId)
 
     // Call OpenRouter API
     const apiKey = process.env.OPENROUTER_API_KEY
+    console.log('[DEBUG] API key exists:', !!apiKey)
 
     if (!apiKey) {
       // Refund credits if API key is missing
-      await supabase.rpc('add_credits', {
+      await supabaseAdmin.rpc('add_credits', {
         user_uuid: userId,
-        amount: CREDITS_PER_IMAGE,
+        amount: creditsRequired,
         trans_type: 'refund',
         descr: 'Refund: API key not configured'
       })
@@ -83,13 +103,14 @@ export async function POST(req: NextRequest) {
     }
 
     let response
+    console.log('[DEBUG] Calling OpenRouter API...')
     try {
       response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${apiKey}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": typeof window !== "undefined" ? window.location.href : "",
+          "HTTP-Referer": "https://nano.banana",
         },
         body: JSON.stringify({
           model: model || "google/gemini-2.5-flash-image-preview",
@@ -114,11 +135,13 @@ export async function POST(req: NextRequest) {
           stream: false
         })
       })
+      console.log('[DEBUG] OpenRouter response status:', response.status)
     } catch (fetchError) {
+      console.error('[ERROR] Fetch error:', fetchError)
       // Refund credits on network error
-      await supabase.rpc('add_credits', {
+      await supabaseAdmin.rpc('add_credits', {
         user_uuid: userId,
-        amount: CREDITS_PER_IMAGE,
+        amount: creditsRequired,
         trans_type: 'refund',
         descr: 'Refund: Network error'
       })
@@ -126,21 +149,27 @@ export async function POST(req: NextRequest) {
     }
 
     if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[ERROR] OpenRouter API error:', response.status, errorText)
       // Refund credits on API error
-      await supabase.rpc('add_credits', {
+      await supabaseAdmin.rpc('add_credits', {
         user_uuid: userId,
-        amount: CREDITS_PER_IMAGE,
+        amount: creditsRequired,
         trans_type: 'refund',
         descr: `Refund: API error ${response.status}`
       })
 
-      throw new Error(`OpenRouter API error: ${response.status}`)
+      throw new Error(`OpenRouter API error: ${response.status} - ${errorText}`)
     }
 
     const data = await response.json()
+    console.log('[DEBUG] OpenRouter response data keys:', Object.keys(data))
 
     const images = data.choices?.[0]?.message?.images
     const messageContent = data.choices?.[0]?.message?.content
+
+    console.log('[DEBUG] Images:', images)
+    console.log('[DEBUG] Message content type:', typeof messageContent)
 
     let content = ""
     let imageUrl = null
@@ -180,8 +209,11 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    console.log('[DEBUG] Final imageUrl:', imageUrl)
+    console.log('[DEBUG] Final content length:', content.length)
+
     // Get new balance after deduction
-    const { data: newBalance } = await supabase.rpc('get_credit_balance', {
+    const { data: newBalance } = await supabaseAdmin.rpc('get_credit_balance', {
       user_uuid: userId
     })
 
@@ -189,12 +221,13 @@ export async function POST(req: NextRequest) {
       content,
       imageUrl,
       rawResponse: data,
-      creditsUsed: CREDITS_PER_IMAGE,
+      creditsUsed: creditsRequired,
       remainingCredits: newBalance || 0
     })
   } catch (error) {
+    console.error('[ERROR] Uncaught error:', error)
     return NextResponse.json(
-      { error: "Failed to generate image", details: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Failed to generate image", details: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     )
   }

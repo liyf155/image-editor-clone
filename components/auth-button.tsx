@@ -45,8 +45,12 @@ export function AuthButton({ onSignInClick }: { onSignInClick?: () => void }) {
   }
 
   const handleSignOut = async () => {
-    await fetch("/auth/signout", { method: "POST" })
-    setUser(null)
+    const { error } = await supabase.auth.signOut()
+    if (!error) {
+      setUser(null)
+      // Force redirect to home page to clear all state
+      window.location.href = '/'
+    }
   }
 
   if (loading) {
